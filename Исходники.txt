@@ -1,0 +1,526 @@
+Сделать возможность отображения картинок. При открытии файла с картиннкой, отображать её в iframe вместо Codemirror
+
+
+
+Дерево текущего каталога: /home/poly/PythonProjects/web-editor
+
+├── README.md
+├── createdir.py
+├── main.py
+├── requirements.txt
+├── static
+│   ├── css
+│   │   ├── codemirror.min.css
+│   │   ├── material.min.css
+│   │   └── styles.css
+│   └── js
+│       ├── codemirror
+│       │   ├── codemirror.min.js
+│       │   ├── htmlmixed.min.js
+│       │   ├── javascript.min.js
+│       │   ├── markdown.min.js
+│       │   ├── python.min.js
+│       │   ├── shell.min.js
+│       │   └── yaml.min.js
+│       └── main.js
+├── templates
+│   ├── index.html
+│   └── pdf
+└── Исходники.txt
+
+Содержимое файлов:
+
+Имя файла: main.py
+Содержимое файла:
+from flask import Flask, request, render_template, redirect, url_for
+import os
+
+app = Flask(__name__)
+
+# Задайте начальный путь к каталогу
+dir_path = '/home'
+allowed_file_types = ['.txt', '.ini', '.yml', '.ruml', '.cfg', '.xml', '.json', '.yaml', '.py', '.js', '.html', '']
+
+@app.route('/upload_file', methods=['POST'])
+def upload_file():
+    data = request.get_json()
+    file_name = data['file_name']
+    file_content = data['file_content']
+
+    # Путь для сохранения файла
+    file_path = os.path.join(dir_path, file_name)
+
+    try:
+        # Записываем содержимое в новый файл
+        with open(file_path, 'w') as f:
+            f.write(file_content)
+        return 'Файл успешно загружен'
+    except OSError as e:
+        return f'Ошибка при загрузке файла: {e.strerror}', 500
+    except Exception as e:
+        return f'Неизвестная ошибка: {str(e)}', 500
+
+
+@app.route('/file_list')
+def file_list():
+    global dir_path
+
+    files = []
+    try:
+        for item in os.listdir(dir_path):
+            if item.startswith('.'):
+                continue
+            file_path = os.path.join(dir_path, item)
+            if os.path.isfile(file_path):
+                files.append({'name': item, 'path': url_for('index', file=file_path)})
+    except FileNotFoundError:
+        return {'error': "Указанный каталог не найден."}, 404
+    except PermissionError:
+        return {'error': "Недостаточно прав для доступа к каталогу."}, 403
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+    return {'files': files}
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    global dir_path
+
+    # Обработка формы для выбора каталога
+    if request.method == 'POST' and 'dir_path' in request.form:
+        new_dir_path = request.form['dir_path']
+        # Проверяем, является ли введенный путь к каталогу действительным
+        if os.path.isdir(new_dir_path):
+            dir_path = new_dir_path
+            return redirect(url_for('index', dir=dir_path))  # Используем url_for
+        else:
+            return render_template('index.html', error="Недопустимый путь к каталогу")
+
+    # Обработка пути из URL
+    selected_dir = request.args.get('dir', '')
+    if selected_dir:
+        dir_path = os.path.join(dir_path, selected_dir)
+
+    # Получение списка файлов в каталоге
+    directories = []
+    files = []
+    error_message = None  # Переменная для хранения сообщения об ошибке
+    try:
+        for item in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, item)
+            if os.path.isdir(full_path):
+                if item.startswith("."):
+                    continue  # Пропускаем скрытые файлы
+                directories.append((item, os.path.getmtime(full_path)))
+            elif os.path.isfile(full_path):
+                if item.startswith("."):
+                    continue  # Пропускаем скрытые файлы
+                if any(item.endswith(ext) for ext in allowed_file_types):
+                    files.append((item, os.path.getmtime(full_path)))
+
+        # Сортировка списков по времени изменения
+        directories.sort(key=lambda x: x[1], reverse=True)
+        files.sort(key=lambda x: x[1], reverse=True)
+
+        # Извлечение только имен файлов и каталогов
+        directories = [d[0] for d in directories]
+        files = [f[0] for f in files]
+    except FileNotFoundError:
+        error_message = "Файл или каталог не найден"
+    except PermissionError:
+        error_message = "Недостаточно прав для доступа к каталогу."
+    except Exception as e:
+        error_message = f"Ошибка при получении списка файлов: {str(e)}."
+
+    # Обработка запроса с параметром file (открытие файла)
+    selected_file = request.args.get('file', '')
+    file_content = ''
+    if selected_file:
+        try:
+            with open(selected_file, 'r') as f:
+                file_content = f.read()
+        except FileNotFoundError:
+            error_message = "Файл не найден"
+        except IsADirectoryError:
+            error_message = "Указанный путь является каталогом, а не файлом."
+        except PermissionError:
+            error_message = "Недостаточно прав для доступа к файлу."
+        except Exception as e:
+            error_message = f"Ошибка при открытии файла: {str(e)}."
+
+    # Обработка формы для сохранения файла
+    if request.method == 'POST' and 'save' in request.form:
+        file_path = request.form['save']
+        new_content = request.form['file_content']
+        try:
+            with open(file_path, 'w') as f:
+                f.write(new_content)
+            return render_template('index.html',
+                                   dir_path=dir_path,
+                                   directories=directories,
+                                   files=files,
+                                   selected_file=selected_file,
+                                   file_content=new_content,
+                                   success="Файл успешно сохранен!")
+        except OSError as e:
+            error_message = f"Ошибка при сохранении файла: {e.strerror}"
+        except Exception as e:
+            error_message = f"Неизвестная ошибка: {str(e)}"
+
+    # Отображение данных в шаблоне
+    return render_template('index.html',
+                           dir_path=dir_path,
+                           directories=directories,
+                           files=files,
+                           selected_file=selected_file,
+                           file_content=file_content,
+                           error=error_message)  # Передаем сообщение об ошибке, если есть
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
+
+Имя файла: static/css/styles.css
+Содержимое файла:
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.left-panel {
+    flex: 0.6;
+/*    background-color: #f0f0f0; */
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.right-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden; /* Убирает прокрутку на правой панели */
+}
+
+.button-row {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+}
+.button-row button {
+    margin-right: 10px;
+}
+
+.button-row2 {
+    display: flex; /* Включаем Flexbox для группировки кнопок. */
+    margin-top: 1px;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 100%; /* Делаем контейнер шириной в 100% от родителя. */
+}
+
+.button-row2 button {
+    flex: 1; /* Каждая кнопка занимает равную долю доступного пространства. */
+    background-color: transparent; /* Прозрачный фон кнопок. */
+    font-size: 14px; /* Размер шрифта на кнопках. */
+    cursor: pointer; /* Указатель курсора при наведении. */
+    margin-right: 5px; /* Отступ справа между кнопками. */
+}
+
+/* Убираем последний отступ у последней кнопки */
+.button-row2 button:last-child {
+    margin-right: 0; /* Убираем отступ после последней кнопки. */
+}
+
+
+.file-content-wrapper {
+    flex: 1; /* Занимает всю доступную высоту */
+    display: flex;
+    flex-direction: column;
+    border: hidden; /* Убираем рамку */
+    overflow: hidden;
+}
+
+/* Стили для CodeMirror */
+.CodeMirror {
+    flex: 1; /* Занимает всю доступную высоту */
+    height: 100%; /* Занимает всю высоту контейнера */
+    border: 3px solid green; /* Устанавливаем рамку */
+    font-size: 14px; /* Устанавливаем размер шрифта */
+    overflow-y: auto; /* Разрешаем прокрутку в редакторе */
+    padding: 5px; /* Отступы внутри редактора */
+}
+
+.dir-form {
+    color: green;
+    margin-bottom: 10px;
+}
+
+#dir_path {
+    width: 100%; /* Устанавливает ширину на 100% от доступного пространства */
+    box-sizing: border-box; /* Учитывает границы и отступы в общей ширине */
+    padding: 2px; /* Отступы внутри поля ввода для удобства */
+    margin-bottom: 10px; /* Отступ снизу для разделения с другими элементами */
+    font-size: 15px; /* Устанавливаем размер шрифта */
+}
+
+.success-message {
+    color: green;
+}
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
+
+/* Стили для списка файлов и каталогов */
+#file-list {
+    list-style-type: none; /* Убираем маркеры списка */
+    padding: 0; /* Убираем отступы */
+    margin: 10; /* Убираем внешние отступы */
+    background-color: #f9f9f9;
+}
+
+/* Стили для общего элемента списка */
+.file-item, .directory-item {
+    background-color: #f9f9f9;
+    padding: 10px; /* Отступ для удобства */
+    border-bottom: 1px solid #ddd; /* Линия разделения */
+    height: 4px; /* Высота элемента */
+}
+
+/* Стили для каталогов */
+.directory-item {
+    background-color: #f9f9f9; /* Светлый фон для каталогов */
+    /* font-weight: bold; /* Жирный шрифт для каталогов */
+    height: 4px; /* Высота элемента */
+}
+
+/* Стили для файлов */
+.file-item {
+    background-color: #ffffff; /* Белый фон для файлов */
+    height: 4px; /* Высота элемента */
+}
+
+/* Hover-эффекты для улучшения взаимодействия */
+.directory-item:hover, .file-item:hover {
+    background-color: #e0e0e0; /* Цвет при наведении */
+    cursor: pointer; /* Указатель при наведении */
+    height: 4px; /* Высота элемента */
+}
+
+/* Изменение цвета нумерации строк в CodeMirror */
+.CodeMirror .CodeMirror-linenumber {
+    color: #4CAF30; /* Зеленый цвет, например */
+}
+
+/* Например, измените цвет текста на светлый при выделении */
+.CodeMirror .CodeMirror-linenumber:hover {
+    color: #F33900; /* Оранжевый цвет при наведении */
+}
+
+
+Имя файла: static/js/main.js
+Содержимое файла:
+// Получаем ссылку на редактор CodeMirror
+var editor = CodeMirror.fromTextArea(document.getElementById('file-content'), {
+    mode: 'yaml',
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    indentUnit: 2,
+    tabSize: 2,
+    theme: 'material'
+});
+
+// Обработчик события для кнопки 'Открыть'
+document.getElementById('dir-form').addEventListener('submit', function(event) {
+    var dirPathInput = document.getElementById('dir_path');
+    var currentPath = dirPathInput.value.trim(); // Получаем текущий путь и удаляем пробелы
+    // Проверяем, является ли введенный путь пустым
+    if (currentPath === '') {
+        dirPathInput.value = '/home'; // Устанавливаем путь по умолчанию
+    }
+    // Теперь можно отправлять форму
+});
+
+
+// Обработчик события для кнопки загрузки файла
+document.getElementById('upload-file-button').addEventListener('click', function() {
+    document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', function(event) {
+    var file = event.target.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            // Устанавливаем содержимое файла в редактор
+            editor.setValue(e.target.result);
+            setEditorMode(file.name); // Устанавливаем режим редактора
+
+            // Отправляем файл на сервер
+            fetch('/upload_file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    file_name: file.name,
+                    file_content: e.target.result
+                })
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data); // Логируем ответ от сервера
+                window.location.reload(); // Перезагружаем страницу для обновления файла
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки файла:', error);
+            });
+        };
+        reader.readAsText(file); // Читаем файл как текст
+    }
+});
+
+// Функция для изменения режима в зависимости от типа файла
+function setEditorMode(fileName) {
+    var extension = fileName.split('.').pop().toLowerCase(); // Получаем расширение файла
+    var mode;
+
+    switch (extension) {
+        case 'py':
+            mode = 'text/x-python';
+            break;
+        case 'yml':
+            mode = 'text/x-yaml';
+            break;
+
+        case 'yaml':
+            mode = 'text/x-yaml';
+            break;
+        case 'ruml':
+            mode = 'text/x-yaml';
+            break;
+        case 'sh':
+            mode = 'text/x-sh';
+            break;
+        case 'js':
+            mode = 'application/javascript';
+            break;
+        case 'ini':
+            mode = 'text/x-ini ';
+            break;
+        case 'json':
+            mode = 'application/json';
+            break;
+
+        default:
+            mode = 'text/plain';
+    }
+
+    editor.setOption("mode", mode); // Устанавливаем режим
+}
+
+// Обработчик события для кнопки "Наверх"
+document.getElementById('up-button').addEventListener('click', function() {
+    // Получаем текущий путь из текстового поля
+var dirPathInput = document.getElementById('dir_path');
+var currentPath = dirPathInput.value;
+    // Извлекаем родительский каталог
+var parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+    // Устанавливаем новый путь в текстовое поле
+dirPathInput.value = parentPath;
+    // Отправляем форму для обновления списка файлов
+document.getElementById('dir-form').submit();
+});
+
+
+Имя файла: templates/index.html
+Содержимое файла:
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор файлов</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material.min.css') }}">
+    <script src="{{ url_for('static', filename='js/codemirror/codemirror.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/python.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/yaml.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/shell.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/htmlmixed.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/javascript.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/markdown.min.js') }}"></script>
+</head>
+
+<body>
+<div class="container">
+    <div class="left-panel">
+        <form method="post" id="dir-form">
+            <label for="dir_path">Путь:</label>
+            <input type="text" id="dir_path" name="dir_path" value="{{ dir_path }}">
+
+            <div class="button-row2">
+                <button type="button" id="up-button">Наверх</button>
+                <button type="submit">Открыть</button>
+                <input type="file" id="file-input" style="display:none;"
+                       accept=".py,.yml,.yaml,.sh,.ini,.html,.txt,.cfg,.conf,.js"/>
+                <button type="button" id="upload-file-button">Загрузить файл</button>
+            </div>
+        <hr>
+            <ul id="file-list">
+                <li><strong>Каталоги:</strong></li>
+                {% for directory in directories %}
+                <li class="directory-item">
+                    <a href="{{ url_for('index', dir=dir_path+'/'+directory) }}">{{ directory }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <ul id="file-list">
+                <li><strong>Файлы:</strong></li>
+                {% for file in files %}
+                <li class="file-item">
+                    <a href="{{ url_for('index', file=dir_path+'/'+file) }}">{{ file }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </form>
+    </div>
+
+    <div class="right-panel">
+        <form method="post" class="file-content-wrapper">
+            <div class="button-row">
+                <button type="submit" name="save" value="{{ selected_file }}">Сохранить</button>
+                {% if success %}
+                <div class="success-message">{{ success }}</div>
+                {% endif %}
+                {% if error %}
+                <div class="error-message">{{ error }}</div>
+                {% endif %}
+            </div>
+            <textarea name="file_content" id="file-content">{{ file_content }}</textarea>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>
+
+
