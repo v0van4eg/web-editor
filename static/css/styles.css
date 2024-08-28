@@ -1,0 +1,144 @@
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.left-panel {
+    flex: 0.6;
+/*    background-color: #f0f0f0; */
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.right-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden; /* Убирает прокрутку на правой панели */
+}
+
+.button-row {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+}
+.button-row button {
+    margin-right: 10px;
+}
+
+.button-row2 {
+    display: flex; /* Включаем Flexbox для группировки кнопок. */
+    margin-top: 1px;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 100%; /* Делаем контейнер шириной в 100% от родителя. */
+}
+
+.button-row2 button {
+    flex: 1; /* Каждая кнопка занимает равную долю доступного пространства. */
+    background-color: transparent; /* Прозрачный фон кнопок. */
+    font-size: 14px; /* Размер шрифта на кнопках. */
+    cursor: pointer; /* Указатель курсора при наведении. */
+    margin-right: 5px; /* Отступ справа между кнопками. */
+}
+
+/* Убираем последний отступ у последней кнопки */
+.button-row2 button:last-child {
+    margin-right: 0; /* Убираем отступ после последней кнопки. */
+}
+
+
+.file-content-wrapper {
+    flex: 1; /* Занимает всю доступную высоту */
+    display: flex;
+    flex-direction: column;
+    border: hidden; /* Убираем рамку */
+    overflow: hidden;
+}
+
+/* Стили для CodeMirror */
+.CodeMirror {
+    flex: 1; /* Занимает всю доступную высоту */
+    height: 100%; /* Занимает всю высоту контейнера */
+    border: 3px solid green; /* Устанавливаем рамку */
+    font-size: 14px; /* Устанавливаем размер шрифта */
+    overflow-y: auto; /* Разрешаем прокрутку в редакторе */
+    padding: 5px; /* Отступы внутри редактора */
+}
+
+.dir-form {
+    color: green;
+    margin-bottom: 10px;
+}
+
+#dir_path {
+    width: 100%; /* Устанавливает ширину на 100% от доступного пространства */
+    box-sizing: border-box; /* Учитывает границы и отступы в общей ширине */
+    padding: 2px; /* Отступы внутри поля ввода для удобства */
+    margin-bottom: 10px; /* Отступ снизу для разделения с другими элементами */
+    font-size: 15px; /* Устанавливаем размер шрифта */
+}
+
+.success-message {
+    color: green;
+}
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
+
+/* Стили для списка файлов и каталогов */
+#file-list {
+    list-style-type: none; /* Убираем маркеры списка */
+    padding: 0; /* Убираем отступы */
+    margin: 10; /* Убираем внешние отступы */
+    background-color: #f9f9f9;
+}
+
+/* Стили для общего элемента списка */
+.file-item, .directory-item {
+    background-color: #f9f9f9;
+    padding: 10px; /* Отступ для удобства */
+    border-bottom: 1px solid #ddd; /* Линия разделения */
+    height: 4px; /* Высота элемента */
+}
+
+/* Стили для каталогов */
+.directory-item {
+    background-color: #f9f9f9; /* Светлый фон для каталогов */
+    /* font-weight: bold; /* Жирный шрифт для каталогов */
+    height: 4px; /* Высота элемента */
+}
+
+/* Стили для файлов */
+.file-item {
+    background-color: #ffffff; /* Белый фон для файлов */
+    height: 4px; /* Высота элемента */
+}
+
+/* Hover-эффекты для улучшения взаимодействия */
+.directory-item:hover, .file-item:hover {
+    background-color: #e0e0e0; /* Цвет при наведении */
+    cursor: pointer; /* Указатель при наведении */
+    height: 4px; /* Высота элемента */
+}
+
+/* Изменение цвета нумерации строк в CodeMirror */
+.CodeMirror .CodeMirror-linenumber {
+    color: #4CAF30; /* Зеленый цвет, например */
+}
+
+/* Например, измените цвет текста на светлый при выделении */
+.CodeMirror .CodeMirror-linenumber:hover {
+    color: #F33900; /* Оранжевый цвет при наведении */
+}

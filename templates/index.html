@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор файлов</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material.min.css') }}">
+    <script src="{{ url_for('static', filename='js/codemirror/codemirror.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/python.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/yaml.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/shell.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/htmlmixed.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/javascript.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/codemirror/markdown.min.js') }}"></script>
+</head>
+
+<body>
+<div class="container">
+    <div class="left-panel">
+        <form method="post" id="dir-form">
+            <label for="dir_path">Путь:</label>
+            <input type="text" id="dir_path" name="dir_path" value="{{ dir_path }}">
+
+            <div class="button-row2">
+                <button type="button" id="up-button">Наверх</button>
+                <button type="submit">Открыть</button>
+                <input type="file" id="file-input" style="display:none;"
+                       accept=".py,.yml,.yaml,.sh,.ini,.html,.txt,.cfg,.conf,.js"/>
+                <button type="button" id="upload-file-button">Загрузить файл</button>
+            </div>
+        <hr>
+            <ul id="file-list">
+                <li><strong>Каталоги:</strong></li>
+                {% for directory in directories %}
+                <li class="directory-item">
+                    <a href="{{ url_for('index', dir=dir_path+'/'+directory) }}">{{ directory }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <ul id="file-list">
+                <li><strong>Файлы:</strong></li>
+                {% for file in files %}
+                <li class="file-item">
+                    <a href="{{ url_for('index', file=dir_path+'/'+file) }}">{{ file }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </form>
+    </div>
+
+    <div class="right-panel">
+        <form method="post" class="file-content-wrapper">
+            <div class="button-row">
+                <button type="submit" name="save" value="{{ selected_file }}">Сохранить</button>
+                {% if success %}
+                <div class="success-message">{{ success }}</div>
+                {% endif %}
+                {% if error %}
+                <div class="error-message">{{ error }}</div>
+                {% endif %}
+            </div>
+            <textarea name="file_content" id="file-content">{{ file_content }}</textarea>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>
