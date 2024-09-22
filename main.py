@@ -4,7 +4,7 @@ import os
 app = Flask(__name__)
 
 # Задайте начальный путь к каталогу
-dir_path = '/home'
+dir_path = '/home/poly/PythonProjects/web-editor'
 allowed_file_types = ['.txt', '.ini', '.yml', '.ruml', '.cfg', '.xml', '.json', '.yaml', '.py', '.js', '.html', '']
 
 @app.route('/upload_file', methods=['POST'])
@@ -131,6 +131,26 @@ def index():
                                    success="Файл успешно сохранен!")
         except OSError as e:
             error_message = f"Ошибка при сохранении файла: {e.strerror}"
+        except Exception as e:
+            error_message = f"Неизвестная ошибка: {str(e)}"
+
+    # Обработка формы для удаления файла
+    if request.method == 'POST' and 'delete' in request.form:
+        file_path = request.form['delete']
+        try:
+            if os.path.isfile(file_path):  # Проверяем, является ли путь файлом
+                os.remove(file_path)
+                return render_template('index.html',
+                                       dir_path=dir_path,
+                                       directories=directories,
+                                       files=files,
+                                       selected_file=None,
+                                       file_content='',
+                                       success="Файл успешно удален!")
+            else:
+                error_message = "Невозможно удалить каталог"
+        except OSError as e:
+            error_message = f"Ошибка при удалении файла: {e.strerror}"
         except Exception as e:
             error_message = f"Неизвестная ошибка: {str(e)}"
 

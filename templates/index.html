@@ -56,6 +56,7 @@
         <form method="post" class="file-content-wrapper">
             <div class="button-row">
                 <button type="submit" name="save" value="{{ selected_file }}">Сохранить</button>
+                <button type="submit" name="delete" value="{{ selected_file }}">Удалить</button>
                 {% if success %}
                 <div class="success-message">{{ success }}</div>
                 {% endif %}
