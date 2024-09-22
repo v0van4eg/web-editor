@@ -35,7 +35,7 @@ def create_directory_tree_report(output_file):
     current_dir = os.getcwd()
 
     with open(output_file, 'w') as report_file:
-        report_file.write(f"Дерево текущего каталога: {current_dir}\n\n")
+        report_file.write(f"Исходные коды программы:\n\nДерево текущего каталога: {current_dir}\n")
         list_directory_tree(current_dir, report_file)  # Вывод дерева каталогов
 
         # Проверяем наличие специфичных файлов и записываем их содержимое
